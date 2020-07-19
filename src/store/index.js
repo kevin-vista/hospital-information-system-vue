@@ -7,10 +7,10 @@ export default new Vuex.Store({
   state: {
     user:
       window.localStorage.getItem('user') === ''
-        ? null : JSON.parse(window.localStorage.getItem('user')),
-    registration:
-      window.localStorage.getItem('registration') === ''
-        ? null : JSON.parse(window.localStorage.getItem('registration'))
+        ? '' : JSON.parse(window.localStorage.getItem('user')),
+    candidate:
+      window.localStorage.getItem('candidate') === ''
+        ? '' : JSON.parse(window.localStorage.getItem('candidate'))
   },
   mutations: {
     login (state, user) {
@@ -21,13 +21,11 @@ export default new Vuex.Store({
       state.user = ''
       window.localStorage.setItem('user', '')
     },
-    setRegistration (state, registration) {
-      state.registration = registration
-      window.localStorage.setItem('registration', JSON.stringify(registration))
+    setCandidate (state, candidate) {
+      state.candidate = candidate
+      window.localStorage.setItem('candidate', JSON.stringify(candidate))
     }
   },
-  actions: {
-  },
-  modules: {
-  }
+  actions: {},
+  modules: {}
 })

@@ -4,9 +4,9 @@
     </el-page-header><br/><br/><br/>
     <el-row type="flex" justify="space-around">
       <el-col span="">
-        <el-form :model="infoForm" ref="idForm" :rules="infoFormRules" label-width="160px">
-          <el-form-item label="挂号ID" prop="id">
-            <el-input style="width: 240px" v-model="infoForm.id" readonly></el-input>
+        <el-form :model="infoForm" :rules="infoFormRules" ref="infoForm" label-width="160px">
+          <el-form-item label="挂号ID" prop="registrationId">
+            <el-input style="width: 240px" v-model="infoForm.registrationId" readonly></el-input>
           </el-form-item>
           <el-form-item label="姓名" prop="name">
             <el-input style="width: 240px" v-model="infoForm.name" readonly></el-input>
@@ -14,49 +14,54 @@
           <el-form-item label="性别" prop="gender">
             <el-input style="width: 240px" v-model="infoForm.gender" readonly></el-input>
           </el-form-item>
-          <el-form-item label="出生日期" prop="birthDate">
-            <el-input style="width: 240px" v-model="infoForm.birthDate" readonly></el-input>
+          <el-form-item label="年龄" prop="age">
+            <el-input style="width: 240px" v-model="infoForm.age" readonly></el-input>
           </el-form-item>
           <el-form-item label="医嘱" prop="advice">
             <el-input
               type="textarea"
-              :rows="6"
+              :rows="8"
               placeholder="请输入内容"
               style="width: 240px"
-              v-model="infoForm.advice">
+              v-model="infoForm.advice"
+              ref="infoForm.advice">
             </el-input>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="finish()">诊 毕</el-button>
-            <el-button @click="resetForm('infoForm')">清 空</el-button>
+            <el-button
+              style="width: 240px"
+              type="primary"
+              @click="submit">
+              诊毕 & 开药
+            </el-button>
           </el-form-item>
         </el-form>
       </el-col>
       <el-col span="">
         <el-table
-          id="drugTable"
           :data="drugData"
           style="width: fit-content"
-          max-height="960"
-          stripe
+          max-height="520px"
           border
           show-summary
+          v-loading="loading"
+          element-loading-text="光速加载中..."
           :summary-method="getSummaries">
           <el-table-column
             prop="drugName"
             label="药品名称"
-            width="180"
+            width="180px"
             sortable>
           </el-table-column>
           <el-table-column
-            prop="specification"
+            prop="spec"
             label="规格"
-            width="150">
+            width="150px">
           </el-table-column>
           <el-table-column
             prop="price"
-            label="单价 (元)"
-            width="110"
+            label="单价 / 元"
+            width="110px"
             sortable>
             <template slot-scope="scope">
               {{scope.row.price.toFixed(2)}}
@@ -70,8 +75,7 @@
               <el-input-number
                 ref="inputNumber"
                 size="mini"
-                v-model="scope.row.num"
-                @change="handleChange"
+                v-model="scope.row.quantity"
                 :min="0"
                 :max="500"
                 :step="1"
@@ -85,7 +89,7 @@
             width="80px"
             sortable>
             <template slot-scope="scope">
-              {{ (scope.row.price * scope.row.num).toFixed(2) }}
+              {{ (scope.row.price * scope.row.quantity).toFixed(2) }}
             </template>
           </el-table-column>
         </el-table>
@@ -101,34 +105,15 @@ export default {
   name: 'Diagnose',
   data () {
     return {
+      loading: true,
       infoForm: {
-        id: '',
+        registrationId: '',
         name: '',
         gender: '',
-        birthDate: '',
+        age: '',
         advice: ''
       },
-      drugData: [{
-        drugName: '五味子颗粒',
-        specification: '1g/6g*1袋',
-        price: 8.30,
-        num: 2
-      }, {
-        drugName: '克拉霉素缓释片（诺邦）',
-        specification: '0.500g*7片/盒',
-        price: 48.60,
-        num: 3
-      }, {
-        drugName: '决明子颗粒 ',
-        specification: '0.5g/10g*1袋',
-        price: 21.40,
-        num: 7
-      }, {
-        drugName: '叶酸片',
-        specification: '5mg×100片/瓶',
-        price: 44.93,
-        num: 5
-      }],
+      drugData: [],
       infoFormRules: {
         advice: [
           { required: true, message: '请输入内容', trigger: 'blur' }
@@ -139,53 +124,85 @@ export default {
   computed: {
     total: function () {
       return this.drugData.map(
-        row => row.price * row.num).reduce(
+        row => row.price * row.quantity).reduce(
         (acc, cur) => (cur + acc), 0)
     }
   },
+  mounted () {
+    axios.post('/diagnosis/init')
+      .then((response) => {
+        if (response.status === 200) {
+          this.drugData = response.data
+          this.loading = false
+        } else {
+          this.$message({
+            message: 'Network Error: ' + response.status,
+            type: 'error',
+            showClose: true,
+            duration: 5000
+          })
+        }
+      })
+    if (this.$store.state.candidate !== null) {
+      const r = this.$store.state.candidate
+      this.infoForm.registrationId = r.registrationId
+      this.infoForm.name = r.name
+      this.infoForm.gender = r.gender
+      this.infoForm.age = r.age
+      this.infoForm.idNum = r.idNum
+    }
+  },
   methods: {
-    mounted () {
-      if (this.$store.state.registration !== null) {
-        const r = this.$store.state.registration
-        this.infoForm.id = r.id
-        this.infoForm.name = r.name
-        this.infoForm.gender = r.gender
-        this.infoForm.birthDate = r.birthDate
-      }
-    },
     goBack () {
       this.$router.push({
         path: '/doctor'
       })
     },
     getSummaries () {
-      // let elements = document.getElementsByClassName('subtotalTemplate')
-      console.log(document.getElementsByClassName('subtotalTemplate'))
       return ['总计', '', '', '', this.total.toFixed(2)]
     },
-    finish () {
-      this.infoForm.validate((valid) => {
-        if (valid) {
-          axios.post('/diagnose', {
-            id: this.infoForm.id,
+    submit () {
+      this.$refs.infoForm.validate((valid) => {
+        if (!valid) {
+          this.$message({
+            message: '请正确填写内容',
+            type: 'error',
+            showClose: true,
+            duration: 5000
+          })
+          return
+        }
+        this.$confirm('请确认', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          axios.post('/diagnosis/add', {
+            registrationId: this.infoForm.registrationId,
             advice: this.infoForm.advice,
-            drugData: this.drugData
+            drugData: this.drugData.filter(data => data.quantity > 0)
           }).then((response) => {
             if (response.status === 200) {
-              alert('诊断信息已保存')
+              this.$message({
+                message: '诊断完成',
+                type: 'success',
+                showClose: true,
+                duration: 5000
+              })
+              this.$router.push({
+                path: '/doctor'
+              })
+            } else {
+              this.$message({
+                message: 'Network Error: ' + response.status,
+                type: 'error',
+                showClose: true,
+                duration: 5000
+              })
             }
           })
-        } else {
-          console.log('请完整填写内容')
-          return false
-        }
+        })
       })
-    },
-    resetForm (formName) {
-      this.$refs[formName].resetFields()
-    },
-    handleChange (value) {
-      console.log(value)
     }
   }
 }

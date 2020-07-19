@@ -1,11 +1,11 @@
 <template>
   <div>
     <el-page-header @back="goBack" content="医生登录">
-    </el-page-header><br/><br/><br/>
-    <br/><br/>
+    </el-page-header>
+    <br/><br/><br/><br/><br/>
     <el-row type="flex" justify="center">
       <el-col span="">
-        <el-form :model="loginForm" :rules="loginRules" ref="loginForm" label-width="80px">
+        <el-form :model="loginForm" :rules="loginRules" ref="loginForm" label-width="70px">
           <el-form-item label="用户名" prop="username">
             <el-input style="width: 240px" v-model="loginForm.username"></el-input>
           </el-form-item>
@@ -14,7 +14,7 @@
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="login">登 录</el-button>
-            <el-button @click="resetForm('loginForm')">重 置</el-button>
+            <el-button @click="resetForm()">重 置</el-button>
           </el-form-item>
         </el-form>
       </el-col>
@@ -50,27 +50,33 @@ export default {
       })
     },
     login () {
-      axios.post('/login', {
-        username: this.username,
-        password: this.password
-      }).then((response) => {
-        if (response.status === 200) {
-          this.$store.commit('login', response.data)
+      this.$refs.loginForm.validate((valid) => {
+        if (!valid) {
+          return
         }
+        axios.post('/login', {}, {
+          params: {
+            username: this.loginForm.username,
+            password: this.loginForm.password
+          }
+        }).then((response) => {
+          if (response.status === 200 && response.data !== null) {
+            this.$store.commit('login', response.data)
+            this.$router.push({
+              path: '/doctor'
+            })
+          } else {
+            this.$message({
+              message: '登录失败',
+              type: 'error',
+              showClose: true
+            })
+          }
+        })
       })
     },
-    submitForm (formName) {
-      this.$refs[formName].validate((valid) => {
-        if (valid) {
-          console.log('submit!')
-        } else {
-          console.log('error submit!!')
-          return false
-        }
-      })
-    },
-    resetForm (formName) {
-      this.$refs[formName].resetFields()
+    resetForm () {
+      this.$refs.loginForm.resetFields()
     }
   }
 }

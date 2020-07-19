@@ -8,7 +8,7 @@
 export default {
   name: 'App',
   methods: {
-    mounted () {
+    created () {
       this.$router.push({
         path: '/home'
       })

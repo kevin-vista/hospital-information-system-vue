@@ -1,35 +1,23 @@
 <template>
   <div>
     <el-page-header @back="goBack" content="收费页面">
-    </el-page-header><br/>
+    </el-page-header><br/><br/>
     <el-row style="width: fit-content; margin-left: auto; margin-right: auto;" >
       <el-col>
         <el-form :model="idForm" :rules="idFormRules" ref="idForm" label-width="160px">
-          <el-form-item label="挂号ID" prop="id" autofocus>
-            <el-input style="width: fit-content" v-model="idForm.id"></el-input>
+          <el-form-item label="挂号ID" prop="registrationId" autofocus>
+            <el-input style="width: fit-content" v-model="idForm.registrationId"></el-input>
           </el-form-item>
           <el-form-item>
-            <el-button size="medium" type="primary" @click="query(idForm.id)">查 询</el-button>
-            <el-button size="medium" @click="resetForm('idForm')">清 空</el-button>
+            <el-button size="medium" type="primary" @click="query">查 询</el-button>
           </el-form-item>
         </el-form>
         <br/>
-        <el-dialog
-          title="确认"
-          :visible.sync="dialogVisible"
-          width="30%">
-          <span>缴费金额为：{{total.toFixed(2)}} (元)</span>
-          <span slot="footer" class="dialog-footer">
-            <el-button @click="dialogVisible = false">取 消</el-button>
-            <el-button type="primary" @click="pay">确 定</el-button>
-          </span>
-        </el-dialog>
         <el-table
           id="drugTable"
           :data="drugData"
           style="width: fit-content"
           max-height="480"
-          stripe
           border
           show-summary
           :summary-method="getSummaries">
@@ -40,34 +28,20 @@
             sortable>
           </el-table-column>
           <el-table-column
-            prop="specification"
+            prop="spec"
             label="规格"
             width="150">
           </el-table-column>
           <el-table-column
             prop="price"
-            label="单价 (元)"
+            label="单价 / 元"
             width="110"
             sortable>
-            <template slot-scope="scope">
-              {{scope.row.price.toFixed(2)}}
-            </template>
           </el-table-column>
           <el-table-column
             prop="quantity"
             label="数量"
             width="130px">
-            <template slot-scope="scope">
-              <el-input-number
-                ref="inputNumber"
-                size="mini"
-                v-model="scope.row.num"
-                :min="0"
-                :max="500"
-                :step="1"
-                style="width: 100px">
-              </el-input-number>
-            </template>
           </el-table-column>
           <el-table-column
             prop="subtotal"
@@ -75,7 +49,7 @@
             width="80px"
             sortable>
             <template slot-scope="scope">
-              {{ (scope.row.price * scope.row.num).toFixed(2) }}
+              {{ (scope.row.price * scope.row.quantity).toFixed(2) }}
             </template>
           </el-table-column>
         </el-table>
@@ -83,7 +57,7 @@
         <el-button
           style="width: 100%; height: 42px; font-size: 16px; margin-left: auto; margin-right: auto;"
           type="primary"
-          @click="dialogVisible = true">缴 费</el-button>
+          @click="pay">缴 费</el-button>
       </el-col>
     </el-row>
   </div>
@@ -97,42 +71,21 @@ export default {
   data () {
     return {
       idForm: {
-        id: ''
+        registrationId: ''
       },
       idFormRules: {
-        id: [
+        registrationId: [
           { required: true, message: '请输入挂号ID', trigger: 'blur' }
         ]
       },
-      drugData: [{
-        drugName: '五味子颗粒',
-        specification: '1g/6g*1袋',
-        price: 8.30,
-        num: 2
-      }, {
-        drugName: '克拉霉素缓释片（诺邦）',
-        specification: '0.500g*7片/盒',
-        price: 48.60,
-        num: 3
-      }, {
-        drugName: '决明子颗粒 ',
-        specification: '0.5g/10g*1袋',
-        price: 21.40,
-        num: 7
-      }, {
-        drugName: '叶酸片',
-        specification: '5mg×100片/瓶',
-        price: 44.93,
-        num: 5
-      }],
-      dialogVisible: false
+      drugData: []
     }
   },
   computed: {
     total: function () {
       return this.drugData.map(
-        row => row.price * row.num).reduce(
-        (acc, cur) => (cur + acc), 0)
+        row => row.price * row.quantity).reduce(
+        (acc, cur) => (cur + acc), 0).toFixed(2)
     }
   },
   methods: {
@@ -141,34 +94,77 @@ export default {
         path: '/home'
       })
     },
-    query (id) {
-      if (isNaN(parseInt(id))) {
-        alert('格式输入错误')
+    query () {
+      if (isNaN(parseInt(this.idForm.registrationId))) {
+        this.$message({
+          message: '请输入有效的挂号ID',
+          type: 'error',
+          duration: 2000,
+          showClose: true
+        })
+        this.drugData = []
         return
       }
-      axios.post('/getDrugData', {
-        id: parseInt(this.infoForm.id)
+      axios.post('/pay/getDrugData', {}, {
+        params: {
+          registrationId: parseInt(this.idForm.registrationId)
+        }
       }).then((response) => {
         if (response.status === 200) {
+          if (response.data.length === 0) {
+            this.$message({
+              message: '请输入有效的挂号ID',
+              type: 'error',
+              duration: 2000,
+              showClose: true
+            })
+            this.drugData = []
+            return
+          }
           this.drugData = response.data
+        } else {
+          this.$message({
+            message: 'Network Error: ' + response.status,
+            type: 'error',
+            showClose: true
+          })
         }
       })
     },
-    resetForm (formName) {
-      this.$refs[formName].resetFields()
+    resetForm () {
+      this.$refs.idForm.resetFields()
     },
     getSummaries () {
-      // let elements = document.getElementsByClassName('subtotalTemplate')
-      console.log(document.getElementsByClassName('subtotalTemplate'))
-      return ['总计', '', '', '', this.total.toFixed(2)]
+      return ['总计', '', '', '', this.total]
     },
     pay () {
-      axios.post('/pay', {
-        id: this.infoForm.id
-      }).then((response) => {
-        if (response.status === 200) {
-          alert('缴费成功')
-        }
+      this.$confirm('应收 ￥' + this.total + ' (元)', '请确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        axios.post('/pay/finish', {}, {
+          params: {
+            registrationId: this.idForm.registrationId
+          }
+        }).then((response) => {
+          if (response.status === 200) {
+            this.$message({
+              message: '缴费成功',
+              type: 'success',
+              duration: 5000,
+              showClose: true
+            })
+            this.resetForm()
+            this.drugData = []
+          } else {
+            this.$message({
+              message: 'Network Error: ' + response.status,
+              type: 'error',
+              showClose: true
+            })
+          }
+        })
       })
     }
   }

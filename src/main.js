@@ -16,10 +16,14 @@ r.beforeEach((to, from, next) => {
   if (to.meta.title) {
     document.title = to.meta.title
   }
-  if (to.meta.requireAuth && !store.state.user) {
-    next('/login')
+  if (to.meta.requireAuth && store.state.user === '') {
+    alert('请先登录')
+    if (to.path !== '/login') {
+      next('/login')
+    }
+  } else {
+    next()
   }
-  next()
 })
 
 new Vue({

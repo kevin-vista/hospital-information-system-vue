@@ -4,7 +4,7 @@
     <br/><br/><br/>
     <el-row style="width: fit-content; margin-left: auto; margin-right: auto;">
       <el-button type="primary" @click="goto('/register')">挂 号</el-button>
-      <el-button type="primary" @click="goto('/login')">看 诊</el-button>
+      <el-button type="primary" @click="goto('/doctor')">看 诊</el-button>
       <el-button type="primary" @click="goto('/pay')">收 费</el-button>
     </el-row>
   </div>

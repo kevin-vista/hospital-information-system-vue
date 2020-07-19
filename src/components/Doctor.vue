@@ -22,7 +22,7 @@
           <el-table-column
             prop="name"
             label="姓名"
-            width="120">
+            width="100">
           </el-table-column>
           <el-table-column
             prop="gender"
@@ -30,9 +30,14 @@
             width="50">
           </el-table-column>
           <el-table-column
+            prop="age"
+            label="年龄"
+            width="60">
+          </el-table-column>
+          <el-table-column
             prop="idNum"
             label="身份证号"
-            width="240">
+            width="180">
           </el-table-column>
           <el-table-column
             prop="registrationId"
@@ -49,7 +54,7 @@
           </el-table-column>
         </el-table>
       </el-col>
-      <el-col span="7">
+      <el-col span="">
         <h2>已诊</h2>
         <el-table
           :data="diagnosed"
@@ -66,14 +71,19 @@
             width="50">
           </el-table-column>
           <el-table-column
+            prop="age"
+            label="年龄"
+            width="60">
+          </el-table-column>
+          <el-table-column
             prop="idNum"
             label="身份证号"
-            width="240">
+            width="180">
           </el-table-column>
           <el-table-column
             prop="registrationId"
             label="挂号ID"
-            width="120">
+            width="100">
           </el-table-column>
         </el-table>
       </el-col>
@@ -88,90 +98,52 @@ export default {
   name: 'Doctor',
   data () {
     return {
-      undiagnosed: [{
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }, {
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }, {
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }, {
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }, {
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }],
-      diagnosed: [{
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }, {
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }, {
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }, {
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }, {
-        name: '王小虎',
-        gender: '男',
-        idNum: '220120199904272768',
-        registrationId: 3
-      }]
+      undiagnosed: [],
+      diagnosed: []
     }
+  },
+  created () {
+    axios.post('/registration/getUndiagnosedToday', {}, {
+      params: {
+        doctorUsername: this.$store.state.user.username
+      }
+    }).then((response) => {
+      if (response.status === 200) {
+        this.undiagnosed = response.data
+      }
+    })
+    axios.post('/registration/getDiagnosedToday', {}, {
+      params: {
+        doctorUsername: this.$store.state.user.username
+      }
+    }).then((response) => {
+      if (response.status === 200) {
+        this.diagnosed = response.data
+      }
+    })
   },
   methods: {
     goBack () {
       this.$router.push({
-        path: '/login'
+        path: '/home'
       })
     },
     logout () {
       this.$store.commit('logout')
-    },
-    mounted () {
-      axios.post('/getUndiagnosedToday')
-        .then((response) => {
-          if (response.status === 200) {
-            this.undiagnosed = response.data
-          }
-        })
-      axios.post('/getDiagnosedToday')
-        .then((response) => {
-          if (response.status === 200) {
-            this.diagnosed = response.data
-          }
-        })
+      this.$router.push({
+        path: '/login'
+      })
     },
     choosePatient (row) {
-      axios.post('/getRegistrationInfo', {
-        id: row.registrationId
-      }).then((response) => {
-        if (response.status === 200) {
-          this.$store.commit('setRegistration', response.data)
-        }
+      this.$store.commit('setCandidate', {
+        name: row.name,
+        gender: row.gender,
+        age: row.age,
+        idNum: row.idNum,
+        registrationId: row.registrationId
+      })
+      this.$router.push({
+        path: '/diagnose'
       })
     }
   }
